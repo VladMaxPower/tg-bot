@@ -1,21 +1,12 @@
 import TelegramBot from 'node-telegram-bot-api';
 import dotenv from 'dotenv';
-import {addNewUser, getUserDataByName, getUserIdsByFistLastName} from './users.js'
+import {addNewUser, ban, getUserDataByName, getUserIdsByFistLastName, isUserAdmin, mute} from './users.js'
 import {addForbiddenWord, getAllForbiddenWords} from "./forbiddenWords.js";
 dotenv.config();
 const chatId = process.env.CHANNEL_ID;
 const botChatId =process.env.BOT_CHAT_ID;
 const bot = new TelegramBot(process.env.BOT_TOKEN, {polling: true});
 
-async function banUser(chatId, userData) {
-    try {
-        await bot.banChatMember(chatId, userData[0].user_id);
-        await bot.sendMessage(botChatId, `Юзер успішно забанен 🫡 ${userData[0].user_name}`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `Помилка під час бану юзера 🫠 ${userData[0].user_name}`);
-        console.log(`ban user error:   ${err}`);
-    }
-}
 async function checkAndDeleteMessages(msg) {
     const messageText = (msg.text).toLowerCase()
     const keywordsResult = await getAllForbiddenWords();
@@ -31,26 +22,14 @@ async function checkAndDeleteMessages(msg) {
         }
     }
 }
-async function muteUser(chatId, userData) {
-    try{
-    await bot.restrictChatMember(chatId, userData[0].user_id,{
-        can_send_messages: false,
-        can_send_media_messages: false,
-        can_send_other_messages: false,
-        can_add_web_page_previews: false,
-    })
-    await bot.sendMessage(botChatId, `Юзер успішно замьючен 🫡 ${userData[0].user_name}`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `Помилка під час мьюту юзера 🫠 ${userData[0].user_name}`);
-        console.log(`mute user error:   ${err}`);
-    }
+async function handleError(chatId, errorMsg) {
+    console.log(errorMsg);
+    await bot.sendMessage(chatId, errorMsg);
 }
-
 
 bot.on('message', async (msg) => {
     try {
         if (String(msg.chat.id) === chatId) {
-            console.log('тут')
             const {id, first_name, last_name, username} = msg.from;
             await addNewUser(id, first_name, last_name, username);
             await checkAndDeleteMessages(msg);
@@ -60,65 +39,45 @@ bot.on('message', async (msg) => {
     }
 });
 
-bot.onText(/\/ban (.+)/, async (msg, match) => {
-    try {
-        const userData = await getUserDataByName(match[1]);
-        await banUser(chatId, userData);
-    } catch (err){
-        console.log(err);
+bot.onText(/\/(ban|mute)(ById)? (.+)/, async (msg, match) => {
+    if (!await isUserAdmin(msg.from.id)){
+        return;
     }
-});
-
-bot.onText(/\/mute (.+)/, async (msg, match) => {
     try{
-    const userData = await getUserDataByName(match[1]);
-    await muteUser(chatId, userData);
+    const command = match[1];
+    const byId = !!match[2];// Convert the matched "ById" to a boolean
+    const userData = !byId ? await getUserDataByName(match[3]) : [{ user_id: match[3], user_name: 'без імені' }];
+    if (command === 'ban') {
+        await ban(bot, userData[0].user_id, userData[0].user_name);
+    } else if (command === 'mute') {
+        await mute(bot, userData[0].user_id, userData[0].user_name);
+    }
         }catch (err){
         console.log(err);
     }
 });
 
-bot.onText(/\/banById (.+)/, async (msg, match) => {
-    try {
-        await bot.banChatMember(chatId, match[1]);
-        await bot.sendMessage(botChatId, `Юзер успішно забанен ${match[1]}`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `Помилка під час бану юзера ${match[1]}`);
-        console.log(`ban user error:   ${err}`);
-    }
-});
-
-bot.onText(/\/muteById (.+)/, async (msg, match) => {
-    try{
-        await bot.restrictChatMember(chatId, match[1],{
-            can_send_messages: false,
-            can_send_media_messages: false,
-            can_send_other_messages: false,
-            can_add_web_page_previews: false,
-        })
-        await bot.sendMessage(botChatId, `Юзер успішно замьючен ${match[1]}`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `Помилка під час мьюту юзера ${match[1]}`);
-        console.log(`mute user error:   ${err}`);
-    }
-});
-
 bot.onText(/\/getIdByNames (.+)/, async (msg, match) => {
+    if (!await isUserAdmin(msg.from.id)){
+        return;
+    }
     try {
         const usersData = await getUserIdsByFistLastName(match[1]);
         await bot.sendMessage(botChatId, `${JSON.stringify(usersData)}`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `не знайшов данні по юзеру 😶 ${match[1]}`);
-        console.log(`getIdByNames user error:   ${err}`);
+    } catch (err) {
+        await handleError(botChatId, `не знайшов данні по юзеру 😶 ${match[1]}`);
     }
 });
 
 bot.onText(/\/setKeyWord (.+)/, async (msg, match) => {
+    if (!await isUserAdmin(msg.from.id)){
+        return;
+    }
     try {
-        await addForbiddenWord(match[1].toLowerCase())
+        const keyword = match[1].toLowerCase();
+        await addForbiddenWord(keyword);
         await bot.sendMessage(botChatId, `Додано 🫡`);
-    } catch (err){
-        await bot.sendMessage(botChatId, `не вдалось додати слово`);
-        console.log(`error adding word:   ${err}`);
+    } catch (err) {
+        await handleError(botChatId, `не вдалось додати слово`);
     }
 });

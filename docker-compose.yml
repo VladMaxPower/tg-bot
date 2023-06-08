@@ -3,7 +3,7 @@ version: "3.7"
 services:
   app:
     image: node:12-alpine
-    command: sh -c "npm install & node ./src/index.js"
+    command: sh -c "npm install && node ./src/index.js"
     ports:
       - 6000:6000
     working_dir: /app
