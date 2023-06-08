@@ -15,8 +15,6 @@ async function checkAndDeleteMessages(msg) {
 
             await bot.deleteMessage(chatId, msg.message_id);
             console.log(`Message deleted: ${msg.text}`);
-            await bot.sendMessage(msg.chat.id,
-                `Було видалено повідомлення від ${msg.from.username} з текстом: ${msg.text}`);
         }} catch (error) {
             console.error('Error deleting message:', error);
         }
