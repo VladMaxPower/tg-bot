@@ -2,7 +2,6 @@ import {isUserExists,insertNewUser,getUserDataByNickName,getUserIdByUserNames} f
 import dotenv from 'dotenv';
 dotenv.config();
 const chatId = process.env.CHANNEL_ID;
-const botChatId = process.env.BOT_CHAT_ID;
 const adminsId = process.env.ADMINS_ID;
 
 async function addNewUser(userId,firstName,lastName,userName){
@@ -24,7 +23,7 @@ async function getUserIdsByFistLastName(data){
    return getUserIdByUserNames(String(userNames[0]),String(userNames[1]));
 }
 
-async function ban(bot,userId,userName){
+async function ban(bot,userId,userName,botChatId){
     try {
         await bot.banChatMember(chatId, userId);
         await bot.sendMessage(botChatId, `Юзер успішно забанен 🫡 ${userName}`);
@@ -34,7 +33,7 @@ async function ban(bot,userId,userName){
     }
 }
 
-async function mute(bot,userId,userName){
+async function mute(bot,userId,userName,botChatId){
     try{
         await bot.restrictChatMember(chatId, userId,{
             can_send_messages: false,
@@ -50,8 +49,12 @@ async function mute(bot,userId,userName){
 }
 
 async function isUserAdmin(senderId){
+    try{
     const ids = adminsId.split(',');
     return ids.includes(String(senderId));
+        }catch (err){
+        console.log(err)
+    }
 }
 
 
