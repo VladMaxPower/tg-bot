@@ -15,7 +15,11 @@ async function getUserDataByNickName(userName){
 }
 
 async function getUserIdByUserNames(firstName,lastName){
-    return dbConnect(`select * from users where first_name ='${firstName}' and last_name ='${lastName}'`);
+    return dbConnect(`select * from users where first_name ='${firstName}' or last_name ='${lastName}'`);
+}
+
+async function getUserIdByFirstNames(firstName){
+    return dbConnect(`select * from users where first_name ='${firstName}'`);
 }
 
 async function setForbiddenWord(word){
@@ -25,4 +29,6 @@ async function getForbiddenWords(){
     return dbConnect('select word from forbidden_words');
 }
 
-export {insertNewUser,isUserExists,getUserDataByNickName,getUserIdByUserNames,setForbiddenWord,getForbiddenWords}
+export {insertNewUser,isUserExists,getUserDataByNickName,
+    getUserIdByUserNames,setForbiddenWord,getForbiddenWords,
+    getUserIdByFirstNames}

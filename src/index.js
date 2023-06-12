@@ -16,7 +16,7 @@ async function checkAndDeleteMessages(msg) {
             await bot.deleteMessage(chatId, msg.message_id);
             console.log(`Message deleted: ${msg.text}`);
         }} catch (error) {
-            console.error('Error deleting message:', error);
+            console.error(`Error deleting message: ${msg}`, error);
         }
     }
 async function handleError(chatId, errorMsg) {

@@ -1,4 +1,10 @@
-import {isUserExists,insertNewUser,getUserDataByNickName,getUserIdByUserNames} from './utils/dbQuery.js';
+import {
+    isUserExists,
+    insertNewUser,
+    getUserDataByNickName,
+    getUserIdByUserNames,
+    getUserIdByFirstNames
+} from './utils/dbQuery.js';
 import dotenv from 'dotenv';
 dotenv.config();
 const chatId = process.env.CHANNEL_ID;
@@ -19,8 +25,12 @@ async function getUserDataByName(userName){
 }
 
 async function getUserIdsByFistLastName(data){
-   const userNames = data.split(' ');
+   const userNames = data.split('&');
+   if(String(userNames[1])==='undefined'){
+     return getUserIdByFirstNames(String(userNames[0]));
+   } else{
    return getUserIdByUserNames(String(userNames[0]),String(userNames[1]));
+       }
 }
 
 async function ban(bot,userId,userName,botChatId){
